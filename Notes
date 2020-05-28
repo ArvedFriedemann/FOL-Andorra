@@ -1,0 +1,19 @@
+Unit Propagation for First Order Logic
+
+Let VAR = {v1,v2,...} be an infinite set of variables. We assume a language with the following terms:
+x is a term for x in VAR.
+(a b) is a term, iff a and b are terms.
+
+For notation, (a b c d) denotes the term (((a b) c) d)
+
+there are some special terms needed, realised with specific bound variables.
+(a = b) should denote an atom declaring the terms a and b to be equal. It holds that
+(a = a) and a in VAR   or
+((a b) = (c d)) and (a = b) and (c = d)
+not (a = b) otherwise
+
+There are furthermore two terms for connectives
+a ^ b
+a v b
+They are commutative so they form a set of terms.
+A Formula is assumed to be a conjunction on top level, with either terms or disjunctions as atoms.
