@@ -6,14 +6,27 @@ x is a term for x in VAR.
 
 For notation, (a b c d) denotes the term (((a b) c) d)
 
-there are some special terms needed, realised with specific bound variables.
-(a = b) should denote an atom declaring the terms a and b to be equal. It holds that
-(a = a) and a in VAR   or
-((a b) = (c d)) and (a = b) and (c = d)
-not (a = b) otherwise
+There is a special term a = b forall a,b being terms and = being a bound variable. This term can be derived forall a = a, or, in the case of structural equality, from (a b) = (c d) it can be derived that a = c and b = d. We will cover later what "deriving" means exactly, for now, basic intuition is sufficient.
 
-There are furthermore two terms for connectives
-a ^ b
-a v b
-They are commutative so they form a set of terms.
-A Formula is assumed to be a conjunction on top level, with either terms or disjunctions as atoms.
+To formulate unit propagation, for first order also known as the andorra principle, we need two special terms, conjunction ^ and disjunction v. They are both associative and commutative, so a list with conjunction or disjunction as a constructor is considered a set of terms.
+For unit propagation, we first assume the formula to be a (finite) conjunction of terms, where each term is a (finite) disjunction of terms. So if we have such a conjunction, represented as the set C = {C1,...,Cn}, where C1,...,Cn are the disjunctions, also called clauses, then unit propagation works the following. Let CU = {Cu | Cu in C, |Cu| = 1} be the set of unit clauses, so disjunctions with only one term. The transformed formula C' after unit propagation is C\CU, but forall equivalences a = b where a in VAR, every occurrence of a is replaced by b (or, analogous, if b in VAR then replace all b by a). If both terms are complex terms like (a b) = (c d), then add the atoms a = c and b = d to the conjunction and repeat the process (unless a term contains itself...but that is a special case handled later).
+--TODO: unbound variables should not override bound ones. So if something is assigned a constant, this constant should not be assigned the variable...or short: only thing that haven't been assigned yet can be reassigned.
+
+
+Each term t has a special (hidden) variable sat_t that points to the value of whether the term 'holds', so top or bot. The value of a conjunction is top iff forall cunjunct term t, sat_t is assigned top, and it is bot iff there exists a conjunct term t where sat_t is assigned bot. Disjunction behaves dually, so is bot iff all disjuncts are bot and top iff there exists a conjunct being top. An empty disjunction is labeled bot and an empty conjunction top.
+
+There is a special term 'not t', that only points to top iff t would point to bot in the current conjunction. Additionally if always holds that t ^ (not t) implies sat_(t ^ (not t)) = bot.
+
+It should also be noted that occasionally, a not (a = b) can be inferred from a conflicting assignment atom (a = c) iff not (c = b) holds. The negation of equality can only source from an axiom. Most common source is creating a constant that is only equal to itself and nothing else.
+
+During the unit propagation, these sat_t variables are assigned as well when possible. If the entire conjunctions sat_t is assigned any value, the algorithm is free to terminate. What is more interesting is that there is a special rule for disjunctions. If in a disjunction with the clauses C1,...,Cn, only one clauses sat_Ck value is unassigned, Ck becomes a unit clause. The unit propagation recurses until no new unit clauses arise. It should be noted that this does not guarantee to assign the sat_t value of the conjunction.
+
+Also, Axioms can be modelled by initially setting an atoms sat_t variable to top initially instead of unassigned. The sat_t variable can cause conflicts just like any other variable, which corresponds to the knowledge that there is an inconsistency. Also note how every assignment to a sat_t variable has a sat_t' variable as well, creating an infinite hierarchy. Not a problem, but an implementation should have an eye on treating these variables lazily.
+
+A small implementation detail is how the evaluation of the disjunction is made. The terms in the evaluation hold 'hypothetically', therefore their sat_t values should be assignable, but they cannot make assignments themselves yet (e.g. to the memory storing the current assignment of variables). This happens automatically by assigning the sat_t values of the facts inside of the clause to the same sat_t values in the conjunction. Therefore, once the facts are deduced in the context they are automatically deduced in the disjunction as well, just as bot sat_t values are immediately propagated. 
+
+For sufficient expressive power, there are special binder terms needed. They will be written as 'bind X Y Z in E', where E is a term and X Y Z are names for variables (can be a list). A variable cannot be bound twice. The term in itself does not do much, but there is a special binder 'exists (bind X Y Z in E)', also noted just as 'exists X Y Z s.t. E', that can create a unit clause E (during unit propagation), s.t. all occurrences of the bound variables are replaced with new variables. Also, the exists term shares the same sat_t variable as the overall conjunction. These terms are the reason why the unit propagation might not terminate (as infinitely many variables might be created).
+Another binder would be the dual 'forall X Y Z in E'. In principle that one could be syntactic sugar for 'not (exists X Y Z s.t. (not E))', but that would not necessarily result in a constructive proof. This will be dealt with later, but it becomes interesting when the forall term already holds (so it does not need a proof anymore). In this case, during unit propagation, E holds for all substitutions with existing variables in the conjunction. Unit propagation could create all these terms, however this would obviously be inefficient. More and more, a concept of lazyness is needed. A forall bound term should only be substituted if needed, e.g. for the sat_t value of an atom.
+
+For the lazyness, values can be marked as 'needed'. It's important to notice that this is a slightly different problem to solve. The strict andorra reasoning would just unfold all facts that are true, which can be used to find inconsistencies. Sometimes though, we assume a term (or formula) to be consistent and want to know whether a specific fact holds in that formula. In that case, all facts in the formula are assumed to hold, the additional fact is added as unknown and the reasoning starts. The sat_t variable is labeled 'needed' and now only facts needed to determine that value are evaluated. In that process, more values can be labelled 'needed'.
+--TODO: Is that extra marker necessary? Isn't there a way to make this follow from some variables being unassigned?
