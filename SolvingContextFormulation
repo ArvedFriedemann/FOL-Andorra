@@ -1,0 +1,13 @@
+Solving Contexts
+
+A term in a conjunction always holds relative to a context. This context is given by the conjunction the term is in.
+This context can only be added things. A context is said to be complete iff if cannot grow by its own rules anymore, that is, if no instantiation of a universal rule would result in a new derived term. A complete context can be known to be consistent or inconsistent.
+
+The context pointer can be passed down the disjunction or other terms. That way "potential behaviour" can be determined. The other way around does not work in all cases (only with general rules from the conjunction).
+
+
+Notes: How does induction work with the help of finite disjunction (natural numbers technically infinite disjunction, but initial one is finite)
+clarify universal quantification
+Look into Lambda Prolog
+Implication probably needed (implication ignores the existence of not A proof...it just does stuff)
+Make sat_t clearer (formulate contexts)
