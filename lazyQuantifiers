@@ -1,0 +1,12 @@
+The formulas within quantifiers can be copied arbitrarily often, for every possible assignment of variables. This is, of course, computationally a bit intensive. There is a more economic way to do so though when not all substitutions are needed, but only a very specific one. In fact, this would be a substitution where part of the bound formula is equal to a more concrete formula.
+E.g. if we want to know whether a certain (concrete) fact t holds. Then we know that, with a universally bound fact "forall x . t'", it holds iff "t = t'[x/y]" holds (better written in the predicate notation "t' sub x for y to ts, t=ts"). the y is unknown yet, but can be deduced when going recursively through the structure of t and t'. Let's recap the rules for equivalence:
+a = b iff a and b are equal terminal values
+(x y) = (x' y'), x = x', y = y'
+and for substitution:
+x sub x for y to y --else
+k sub x for y to k
+(a b) sub x for y to (a' b'), a sub x for y to a', b sub x for y to b'
+
+the value for y cannot be deduced until it is forced equal by the first rule. This gives exactly a pretty efficient matching algorithm.
+
+When doing goal oriented reasoning, it needs to be checked wether there are facts that would result in the goal. So if we have a goal t, and some forall ... k -> t', then we set (k -> t)[x/y], t=t'. for some y for each bound x. same goes for the other constructors. if the have forall ... A ^ B, and the goal is B, it can be deduced if (not A) holds. Other way around for implication. Viola, somewhat lazy term matching.  
